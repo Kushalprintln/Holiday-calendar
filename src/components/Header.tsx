@@ -1,10 +1,10 @@
 "use client"
 
 import { useCalendar } from "../context/CalendarContext"
-import { IoMoonOutline, IoSunnyOutline, IoChevronBack, IoChevronForward } from "react-icons/io5"
+import { IoMoonOutline, IoSunnyOutline, IoChevronBack, IoChevronForward, IoExpand } from "react-icons/io5"
 
 export default function Header() {
-  const { theme, toggleTheme, year, setYear, layoutView, setLayoutView } = useCalendar()
+  const { theme, toggleTheme, year, setYear, layoutView, setLayoutView, setViewMode } = useCalendar()
 
   return (
     <header
@@ -69,6 +69,19 @@ export default function Header() {
               <option value="yearly">Yearly</option>
               <option value="monthly">Monthly</option>
             </select>
+
+            <button
+              onClick={() => setViewMode("fullYear")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                theme === "dark"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
+              aria-label="View full year calendar"
+            >
+              <IoExpand className="text-lg" />
+              View Full Year Calendar
+            </button>
           </div>
 
           {/* Theme Toggle */}

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useCalendar } from "../context/CalendarContext"
-import { getDaysInMonth, getFirstDayOfMonth, getMonthName } from "../utils/dateUtils"
+import { getMonthName, generateMonthGrid } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 import { IoChevronBack, IoChevronForward } from "react-icons/io5"
 
@@ -35,42 +35,17 @@ export default function MonthlyView() {
     }, 300)
   }
 
-  const daysInMonth = getDaysInMonth(year, currentMonth)
-  const firstDay = getFirstDayOfMonth(year, currentMonth)
   const monthName = getMonthName(currentMonth, "full")
 
-  const adjustedFirstDay = settings.firstDayOfWeek === "monday" ? (firstDay === 0 ? 6 : firstDay - 1) : firstDay
-
-  const days = []
-  const totalCells = Math.ceil((daysInMonth + adjustedFirstDay) / 7) * 7
-
-  for (let i = 0; i < totalCells; i++) {
-    const dayNumber = i - adjustedFirstDay + 1
-    const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth
-
-    if (isValidDay) {
-      const date = new Date(year, currentMonth, dayNumber)
-      const dayOfWeek = date.getDay()
-      const dateString = date.toISOString().split("T")[0]
-
-      const holiday = holidays.find((h) => h.date === dateString)
-      const weekdayHighlight = settings.weekdayHighlights.find((w) => w.day === dayOfWeek)
-
-      days.push({
-        day: dayNumber,
-        date: dateString,
-        dayOfWeek,
-        holiday,
-        weekdayHighlight,
-      })
-    } else {
-      days.push(null)
-    }
-  }
+  const days = generateMonthGrid({
+    year,
+    month: currentMonth,
+    showOverlappingDates: settings.showOverlappingDates,
+    firstDayOfWeek: settings.firstDayOfWeek,
+  })
 
   const weekdayNames = getWeekdayNames(settings.weekdayDisplay, settings.firstDayOfWeek)
 
-  // Background image for the month
   const backgroundImage = `/placeholder.svg?height=1080&width=1920&query=beautiful ${monthName} landscape scenery`
 
   return (
@@ -142,45 +117,45 @@ export default function MonthlyView() {
 
           {/* Days Grid */}
           <div className="grid grid-cols-7 gap-2">
-            {days.map((day, idx) => (
-              <div
-                key={idx}
-                className={`aspect-square flex flex-col items-center justify-center rounded-lg transition-all ${
-                  day
-                    ? `${
-                        theme === "dark" ? "bg-neutral-800/50 hover:bg-neutral-700/50" : "bg-white/50 hover:bg-white/70"
-                      } backdrop-blur-sm`
-                    : ""
-                } ${settings.template.dayClass}`}
-                style={{
-                  backgroundColor: day?.holiday
-                    ? day.holiday.color
-                    : day?.weekdayHighlight
-                      ? day.weekdayHighlight.color
-                      : undefined,
-                  backdropFilter: day?.holiday || day?.weekdayHighlight ? "none" : undefined,
-                }}
-              >
-                {day && (
-                  <>
-                    <span
-                      className={`text-2xl font-semibold ${
-                        day.holiday || day.weekdayHighlight
-                          ? "text-white"
-                          : theme === "dark"
-                            ? "text-neutral-200"
-                            : "text-neutral-800"
-                      }`}
-                    >
-                      {day.day}
-                    </span>
-                    {day.holiday && (
-                      <span className="text-xs text-white mt-1 font-medium text-center px-1">{day.holiday.name}</span>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
+            {days.map((day, idx) => {
+              if (!day) {
+                return <div key={idx} className="aspect-square" />
+              }
+
+              const holiday = holidays.find((h) => h.date === day.date)
+              const weekdayHighlight = settings.weekdayHighlights.find((w) => w.day === day.dayOfWeek)
+
+              const isOverlapping = !day.isCurrentMonth
+              const opacity = isOverlapping ? "opacity-40" : ""
+
+              return (
+                <div
+                  key={idx}
+                  className={`aspect-square flex flex-col items-center justify-center rounded-lg transition-all ${
+                    theme === "dark" ? "bg-neutral-800/50 hover:bg-neutral-700/50" : "bg-white/50 hover:bg-white/70"
+                  } backdrop-blur-sm ${opacity} ${settings.template.dayClass}`}
+                  style={{
+                    backgroundColor: holiday ? holiday.color : weekdayHighlight ? weekdayHighlight.color : undefined,
+                    backdropFilter: holiday || weekdayHighlight ? "none" : undefined,
+                  }}
+                >
+                  <span
+                    className={`text-2xl font-semibold ${
+                      holiday || weekdayHighlight
+                        ? "text-white"
+                        : theme === "dark"
+                          ? "text-neutral-200"
+                          : "text-neutral-800"
+                    }`}
+                  >
+                    {day.day}
+                  </span>
+                  {holiday && (
+                    <span className="text-xs text-white mt-1 font-medium text-center px-1">{holiday.name}</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

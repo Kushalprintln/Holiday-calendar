@@ -119,6 +119,44 @@ export default function Settings() {
           </div>
         </section>
 
+        {/* Display Options */}
+        <section>
+          <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-neutral-900"}`}>
+            Display Options
+          </h2>
+          <div
+            className={`flex items-center justify-between p-4 rounded-lg ${
+              theme === "dark" ? "bg-neutral-900" : "bg-white border border-neutral-200"
+            }`}
+          >
+            <div>
+              <h3 className={`font-medium mb-1 ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}>
+                Show Overlapping Dates
+              </h3>
+              <p className={`text-sm ${theme === "dark" ? "text-neutral-400" : "text-neutral-600"}`}>
+                Display dates from previous and next months in monthly view
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                updateSettings({
+                  ...settings,
+                  showOverlappingDates: !settings.showOverlappingDates,
+                })
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                settings.showOverlappingDates ? "bg-blue-600" : theme === "dark" ? "bg-neutral-700" : "bg-neutral-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  settings.showOverlappingDates ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </section>
+
         {/* Weekday Highlighting */}
         <section>
           <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-neutral-900"}`}>

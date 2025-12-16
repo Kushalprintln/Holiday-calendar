@@ -6,6 +6,7 @@ import { templates } from "../utils/templates"
 export type Theme = "light" | "dark"
 export type LayoutView = "yearly" | "monthly"
 export type ActiveTab = "calendar" | "settings" | "saved"
+export type ViewMode = "normal" | "fullYear"
 
 export interface Holiday {
   id: string
@@ -34,6 +35,7 @@ export interface CalendarSettings {
   weekdayHighlights: WeekdayHighlight[]
   monthDisplay: "short" | "full"
   weekdayDisplay: "short" | "medium"
+  showOverlappingDates: boolean
 }
 
 export interface SavedCalendar {
@@ -53,6 +55,8 @@ interface CalendarContextType {
   setLayoutView: (view: LayoutView) => void
   activeTab: ActiveTab
   setActiveTab: (tab: ActiveTab) => void
+  viewMode: ViewMode
+  setViewMode: (mode: ViewMode) => void
   settings: CalendarSettings
   updateSettings: (settings: CalendarSettings) => void
   holidays: Holiday[]
@@ -71,12 +75,14 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   const [year, setYear] = useState(new Date().getFullYear())
   const [layoutView, setLayoutView] = useState<LayoutView>("yearly")
   const [activeTab, setActiveTab] = useState<ActiveTab>("calendar")
+  const [viewMode, setViewMode] = useState<ViewMode>("normal")
   const [settings, setSettings] = useState<CalendarSettings>({
     template: templates[0],
     firstDayOfWeek: "sunday",
     weekdayHighlights: [],
     monthDisplay: "short",
     weekdayDisplay: "short",
+    showOverlappingDates: false,
   })
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [savedCalendars, setSavedCalendars] = useState<SavedCalendar[]>([])
@@ -131,6 +137,8 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         setLayoutView,
         activeTab,
         setActiveTab,
+        viewMode,
+        setViewMode,
         settings,
         updateSettings,
         holidays,

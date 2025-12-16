@@ -1,5 +1,5 @@
 import { useCalendar } from "../context/CalendarContext"
-import { getDaysInMonth, getFirstDayOfMonth, getMonthName } from "../utils/dateUtils"
+import { getMonthName, generateMonthGrid } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 
 export default function YearlyView() {
@@ -7,42 +7,14 @@ export default function YearlyView() {
   const months = Array.from({ length: 12 }, (_, i) => i)
 
   const renderMiniMonth = (monthIndex: number) => {
-    const daysInMonth = getDaysInMonth(year, monthIndex)
-    const firstDay = getFirstDayOfMonth(year, monthIndex)
     const monthName = getMonthName(monthIndex, settings.monthDisplay)
 
-    // Adjust first day based on settings
-    const adjustedFirstDay = settings.firstDayOfWeek === "monday" ? (firstDay === 0 ? 6 : firstDay - 1) : firstDay
-
-    const days = []
-    const totalCells = Math.ceil((daysInMonth + adjustedFirstDay) / 7) * 7
-
-    for (let i = 0; i < totalCells; i++) {
-      const dayNumber = i - adjustedFirstDay + 1
-      const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth
-
-      if (isValidDay) {
-        const date = new Date(year, monthIndex, dayNumber)
-        const dayOfWeek = date.getDay()
-        const dateString = date.toISOString().split("T")[0]
-
-        // Check for holidays
-        const holiday = holidays.find((h) => h.date === dateString)
-
-        // Check for weekday highlighting
-        const weekdayHighlight = settings.weekdayHighlights.find((w) => w.day === dayOfWeek)
-
-        days.push({
-          day: dayNumber,
-          date: dateString,
-          dayOfWeek,
-          holiday,
-          weekdayHighlight,
-        })
-      } else {
-        days.push(null)
-      }
-    }
+    const days = generateMonthGrid({
+      year,
+      month: monthIndex,
+      showOverlappingDates: settings.showOverlappingDates,
+      firstDayOfWeek: settings.firstDayOfWeek,
+    })
 
     const weekdayNames = getWeekdayNames(settings.weekdayDisplay, settings.firstDayOfWeek)
 
@@ -75,34 +47,38 @@ export default function YearlyView() {
           ))}
         </div>
 
-        {/* Days grid */}
+        {/* Days grid - Now renders all 42 cells with proper overlapping dates */}
         <div className="grid grid-cols-7 gap-1">
-          {days.map((day, idx) => (
-            <div
-              key={idx}
-              className={`aspect-square flex items-center justify-center text-xs rounded ${
-                day
-                  ? day.holiday
+          {days.map((day, idx) => {
+            if (!day) {
+              return <div key={idx} className="aspect-square" />
+            }
+
+            const holiday = holidays.find((h) => h.date === day.date)
+            const weekdayHighlight = settings.weekdayHighlights.find((w) => w.day === day.dayOfWeek)
+
+            const isOverlapping = !day.isCurrentMonth
+            const opacity = isOverlapping ? "opacity-40" : ""
+
+            return (
+              <div
+                key={idx}
+                className={`aspect-square flex items-center justify-center text-xs rounded ${opacity} ${
+                  day && (day.holiday || day.weekdayHighlight)
                     ? `font-semibold`
-                    : day.weekdayHighlight
-                      ? ""
-                      : theme === "dark"
-                        ? "text-neutral-300"
-                        : "text-neutral-700"
-                  : ""
-              } ${settings.template.dayClass}`}
-              style={{
-                backgroundColor: day?.holiday
-                  ? day.holiday.color
-                  : day?.weekdayHighlight
-                    ? day.weekdayHighlight.color
-                    : undefined,
-                color: day?.holiday || day?.weekdayHighlight ? "#fff" : undefined,
-              }}
-            >
-              {day?.day}
-            </div>
-          ))}
+                    : theme === "dark"
+                      ? "text-neutral-300"
+                      : "text-neutral-700"
+                } ${settings.template.dayClass}`}
+                style={{
+                  backgroundColor: holiday ? holiday.color : weekdayHighlight ? weekdayHighlight.color : undefined,
+                  color: holiday || weekdayHighlight ? "#fff" : undefined,
+                }}
+              >
+                {day.day}
+              </div>
+            )
+          })}
         </div>
       </div>
     )
