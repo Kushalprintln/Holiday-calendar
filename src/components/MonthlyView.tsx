@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useCalendar } from "../context/CalendarContext"
-import { getMonthName, generateMonthGrid, getWeekdayOccurrences } from "../utils/dateUtils"
+import { getMonthName, generateMonthGrid, getWeekdayOccurrences, getSuggestedLeaveDates } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 import { IoChevronBack, IoChevronForward } from "react-icons/io5"
 import HolidayTooltip from "./HolidayTooltip"
@@ -71,6 +71,14 @@ export default function MonthlyView() {
     }
   })
 
+  const allHolidays = [
+    ...holidays.map((h) => ({ date: h.date })),
+    ...Array.from(weeklyHolidayDates).map((date) => ({ date })),
+  ]
+  const suggestedLeaveDates = settings.suggestLeaves
+    ? new Set(getSuggestedLeaveDates({ holidays: allHolidays, year, month: currentMonth }))
+    : new Set<string>()
+
   return (
     <div className="relative h-full flex flex-col">
       {/* Month Navigation */}
@@ -111,7 +119,6 @@ export default function MonthlyView() {
               : "translate-x-0 opacity-100"
         }`}
       >
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
             src={backgroundImage || "/placeholder.svg"}
@@ -121,7 +128,7 @@ export default function MonthlyView() {
           <div className={`absolute inset-0 ${theme === "dark" ? "bg-neutral-950/80" : "bg-white/90"}`} />
         </div>
 
-        <div className="relative z-10 p-6 flex flex-col h-full">
+        <div className="relative z-10 p-4 sm:p-6 flex flex-col h-full">
           {/* Weekday Headers */}
           <div className="grid grid-cols-7 gap-2 mb-2 flex-shrink-0">
             {weekdayNames.map((name, idx) => (
@@ -136,7 +143,7 @@ export default function MonthlyView() {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2 flex-1 auto-rows-fr">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 flex-1 auto-rows-fr">
             {days.map((day, idx) => {
               if (!day) {
                 return <div key={idx} />
@@ -144,6 +151,7 @@ export default function MonthlyView() {
 
               const holiday = holidays.find((h) => h.date === day.date)
               const isWeeklyHoliday = weeklyHolidayDates.has(day.date)
+              const isSuggestedLeave = suggestedLeaveDates.has(day.date)
 
               const weekdayHighlight = settings.weekdayHighlights.find((h) => {
                 if (h.day !== day.dayOfWeek) return false
@@ -179,14 +187,14 @@ export default function MonthlyView() {
                     theme === "dark" ? "bg-neutral-800/50 hover:bg-neutral-700/50" : "bg-white/50 hover:bg-white/70"
                   } backdrop-blur-sm ${opacity} ${settings.template.dayClass} ${
                     activeTab === "calendar" && !isOverlapping ? "cursor-pointer" : ""
-                  }`}
+                  } ${isSuggestedLeave ? "ring-2 ring-offset-2 ring-amber-500 dark:ring-amber-400" : ""}`}
                   style={{
                     backgroundColor: holiday ? holiday.color : weekdayHighlight ? weekdayHighlight.color : undefined,
                     backdropFilter: holiday || weekdayHighlight ? "none" : undefined,
                   }}
                 >
                   <span
-                    className={`text-xl font-semibold ${
+                    className={`text-base sm:text-xl font-semibold ${
                       holiday || weekdayHighlight
                         ? "text-white"
                         : theme === "dark"
@@ -197,7 +205,9 @@ export default function MonthlyView() {
                     {day.day}
                   </span>
                   {holiday && (
-                    <span className="text-xs text-white mt-1 font-medium text-center px-1">{holiday.name}</span>
+                    <span className="text-xs text-white mt-1 font-medium text-center px-1 hidden sm:block">
+                      {holiday.name}
+                    </span>
                   )}
                 </div>
               )

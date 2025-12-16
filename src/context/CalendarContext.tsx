@@ -40,6 +40,7 @@ export interface CalendarSettings {
   monthDisplay: "short" | "full"
   weekdayDisplay: "short" | "medium"
   showOverlappingDates: boolean
+  suggestLeaves: boolean // Added suggest leaves toggle
 }
 
 export interface SavedCalendar {
@@ -70,6 +71,8 @@ interface CalendarContextType {
   saveCurrentCalendar: (name: string) => void
   loadSavedCalendar: (id: string) => void
   deleteSavedCalendar: (id: string) => void
+  customColors: string[] // Added custom colors array
+  addCustomColor: (color: string) => void // Added custom color handler
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined)
@@ -87,9 +90,11 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     monthDisplay: "short",
     weekdayDisplay: "short",
     showOverlappingDates: false,
+    suggestLeaves: false, // Initialize suggest leaves as false
   })
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [savedCalendars, setSavedCalendars] = useState<SavedCalendar[]>([])
+  const [customColors, setCustomColors] = useState<string[]>([]) // Initialize custom colors
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
@@ -156,6 +161,19 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     }
   }, [savedCalendars, isHydrated])
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("customColors")
+      if (saved) {
+        try {
+          setCustomColors(JSON.parse(saved))
+        } catch (e) {
+          console.error("Failed to parse custom colors:", e)
+        }
+      }
+    }
+  }, [])
+
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light")
   }
@@ -200,6 +218,17 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     setSavedCalendars(savedCalendars.filter((c) => c.id !== id))
   }
 
+  const addCustomColor = (color: string) => {
+    if (!customColors.includes(color)) {
+      const newColors = [...customColors, color]
+      setCustomColors(newColors)
+      // Persist to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("customColors", JSON.stringify(newColors))
+      }
+    }
+  }
+
   return (
     <CalendarContext.Provider
       value={{
@@ -222,6 +251,8 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         saveCurrentCalendar,
         loadSavedCalendar,
         deleteSavedCalendar,
+        customColors, // Provide custom colors
+        addCustomColor, // Provide add custom color handler
       }}
     >
       {children}

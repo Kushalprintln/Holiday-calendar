@@ -1,7 +1,14 @@
 "use client"
 
 import { useCalendar } from "../context/CalendarContext"
-import { IoMoonOutline, IoSunnyOutline, IoChevronBack, IoChevronForward, IoExpand } from "react-icons/io5"
+import {
+  IoMoonOutline,
+  IoSunnyOutline,
+  IoChevronBack,
+  IoChevronForward,
+  IoExpand,
+  IoChevronDown,
+} from "react-icons/io5"
 
 export default function Header() {
   const { theme, toggleTheme, year, setYear, layoutView, setLayoutView, setViewMode } = useCalendar()
@@ -13,18 +20,18 @@ export default function Header() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <div className="flex items-center">
-            <h1 className={`text-xl font-semibold ${theme === "dark" ? "text-white" : "text-neutral-900"}`}>
+          <div className="flex items-center flex-shrink-0">
+            <h1 className={`text-lg sm:text-xl font-semibold ${theme === "dark" ? "text-white" : "text-neutral-900"}`}>
               CustomCalendar
             </h1>
           </div>
 
           {/* Center Controls */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             {/* Year Selector */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setYear(year - 1)}
                 className={`p-1.5 rounded-lg transition-colors ${
@@ -34,10 +41,10 @@ export default function Header() {
                 }`}
                 aria-label="Previous year"
               >
-                <IoChevronBack className="text-xl" />
+                <IoChevronBack className="text-lg sm:text-xl" />
               </button>
               <span
-                className={`text-2xl font-semibold min-w-[80px] text-center ${
+                className={`text-xl sm:text-2xl font-semibold min-w-[60px] sm:min-w-[80px] text-center ${
                   theme === "dark" ? "text-white" : "text-neutral-900"
                 }`}
               >
@@ -52,27 +59,34 @@ export default function Header() {
                 }`}
                 aria-label="Next year"
               >
-                <IoChevronForward className="text-xl" />
+                <IoChevronForward className="text-lg sm:text-xl" />
               </button>
             </div>
 
-            {/* Layout Dropdown */}
-            <select
-              value={layoutView}
-              onChange={(e) => setLayoutView(e.target.value as "yearly" | "monthly")}
-              className={`px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
-                theme === "dark"
-                  ? "bg-neutral-800 border-neutral-700 text-neutral-200 hover:bg-neutral-750"
-                  : "bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50"
-              }`}
-            >
-              <option value="yearly">Yearly</option>
-              <option value="monthly">Monthly</option>
-            </select>
+            <div className="relative">
+              <select
+                value={layoutView}
+                onChange={(e) => setLayoutView(e.target.value as "yearly" | "monthly")}
+                className={`appearance-none pl-3 pr-8 py-2 rounded-lg border font-medium text-sm transition-colors cursor-pointer ${
+                  theme === "dark"
+                    ? "bg-neutral-800 border-neutral-700 text-neutral-200 hover:bg-neutral-750"
+                    : "bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+                }`}
+                style={{ paddingRight: "2rem" }}
+              >
+                <option value="yearly">Yearly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <IoChevronDown
+                className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-sm ${
+                  theme === "dark" ? "text-neutral-400" : "text-neutral-600"
+                }`}
+              />
+            </div>
 
             <button
               onClick={() => setViewMode("fullYear")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              className={`hidden sm:flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                 theme === "dark"
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -80,14 +94,15 @@ export default function Header() {
               aria-label="View full year calendar"
             >
               <IoExpand className="text-lg" />
-              View Full Year Calendar
+              <span className="hidden lg:inline">View Full Year Calendar</span>
+              <span className="lg:hidden">Full Year</span>
             </button>
           </div>
 
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
               theme === "dark"
                 ? "hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200"
                 : "hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900"

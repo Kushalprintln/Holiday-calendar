@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useCalendar } from "../context/CalendarContext"
-import { getMonthName, generateMonthGrid, getWeekdayOccurrences } from "../utils/dateUtils"
+import { getMonthName, generateMonthGrid, getWeekdayOccurrences, getSuggestedLeaveDates } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 import HolidayTooltip from "./HolidayTooltip"
 import AddHolidayModal from "./AddHolidayModal"
@@ -44,15 +44,23 @@ export default function YearlyView() {
       }
     })
 
+    const allHolidays = [
+      ...holidays.map((h) => ({ date: h.date })),
+      ...Array.from(weeklyHolidayDates).map((date) => ({ date })),
+    ]
+    const suggestedLeaveDates = settings.suggestLeaves
+      ? new Set(getSuggestedLeaveDates({ holidays: allHolidays, year, month: monthIndex }))
+      : new Set<string>()
+
     return (
       <div
         key={monthIndex}
-        className={`rounded-lg p-4 transition-all ${
+        className={`rounded-lg p-3 sm:p-4 transition-all ${
           theme === "dark" ? "bg-neutral-900 border border-neutral-800" : "bg-white border border-neutral-200"
         } ${settings.template.containerClass}`}
       >
         <h3
-          className={`text-center font-semibold mb-3 ${
+          className={`text-center font-semibold mb-2 sm:mb-3 text-sm sm:text-base ${
             theme === "dark" ? "text-neutral-200" : "text-neutral-800"
           } ${settings.template.titleClass}`}
         >
@@ -82,6 +90,7 @@ export default function YearlyView() {
 
             const holiday = holidays.find((h) => h.date === day.date)
             const isWeeklyHoliday = weeklyHolidayDates.has(day.date)
+            const isSuggestedLeave = suggestedLeaveDates.has(day.date)
 
             const weekdayHighlight = settings.weekdayHighlights.find((h) => {
               if (h.day !== day.dayOfWeek) return false
@@ -114,7 +123,9 @@ export default function YearlyView() {
                     : theme === "dark"
                       ? "text-neutral-300"
                       : "text-neutral-700"
-                } ${settings.template.dayClass} ${activeTab === "calendar" && !isOverlapping ? "cursor-pointer hover:ring-2 hover:ring-blue-500" : ""}`}
+                } ${settings.template.dayClass} ${
+                  activeTab === "calendar" && !isOverlapping ? "cursor-pointer hover:ring-2 hover:ring-blue-500" : ""
+                } ${isSuggestedLeave ? "ring-2 ring-amber-500 dark:ring-amber-400" : ""}`}
                 style={{
                   backgroundColor: holiday ? holiday.color : weekdayHighlight ? weekdayHighlight.color : undefined,
                   color: holiday || weekdayHighlight ? "#fff" : undefined,
@@ -140,7 +151,7 @@ export default function YearlyView() {
   return (
     <>
       <div className={`transition-opacity duration-500`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {months.map(renderMiniMonth)}
         </div>
       </div>

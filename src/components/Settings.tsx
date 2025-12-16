@@ -4,11 +4,17 @@ import { useCalendar, type WeekdayHighlight } from "../context/CalendarContext"
 import { templates } from "../utils/templates"
 import { IoAdd, IoTrashOutline, IoChevronDown, IoChevronUp } from "react-icons/io5"
 import { useState } from "react"
+import ColorPicker from "./ColorPicker"
 
 export default function Settings() {
   const { theme, settings, updateSettings, holidays, addHoliday, removeHoliday } = useCalendar()
   const [newHoliday, setNewHoliday] = useState({ date: "", name: "", color: "#ef4444" })
   const [expandedWeekdays, setExpandedWeekdays] = useState<Set<number>>(new Set())
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const [colorPickerContext, setColorPickerContext] = useState<{
+    type: "holiday" | "weekday"
+    weekday?: number
+  } | null>(null)
 
   const handleAddHoliday = () => {
     if (newHoliday.date && newHoliday.name) {
@@ -17,22 +23,34 @@ export default function Settings() {
     }
   }
 
+  const openColorPicker = (type: "holiday" | "weekday", weekday?: number) => {
+    setColorPickerContext({ type, weekday })
+    setColorPickerOpen(true)
+  }
+
+  const handleColorSelect = (color: string) => {
+    if (colorPickerContext?.type === "holiday") {
+      setNewHoliday({ ...newHoliday, color })
+    } else if (colorPickerContext?.type === "weekday" && colorPickerContext.weekday !== undefined) {
+      updateWeekdayHighlight(colorPickerContext.weekday, { color })
+    }
+    setColorPickerOpen(false)
+    setColorPickerContext(null)
+  }
+
   const handleWeekdayToggle = (day: number) => {
     const existing = settings.weekdayHighlights.find((w) => w.day === day)
     if (existing) {
-      // Remove the highlight
       updateSettings({
         ...settings,
         weekdayHighlights: settings.weekdayHighlights.filter((w) => w.day !== day),
       })
-      // Collapse the panel
       setExpandedWeekdays((prev) => {
         const next = new Set(prev)
         next.delete(day)
         return next
       })
     } else {
-      // Add new highlight with defaults
       updateSettings({
         ...settings,
         weekdayHighlights: [
@@ -40,7 +58,6 @@ export default function Settings() {
           { day, color: "#3b82f6", mode: "all", highlightNext: false, markAsHoliday: false },
         ],
       })
-      // Expand the panel
       setExpandedWeekdays((prev) => new Set(prev).add(day))
     }
   }
@@ -215,11 +232,11 @@ export default function Settings() {
                     <div className="flex items-center gap-3">
                       {highlight && (
                         <>
-                          <input
-                            type="color"
-                            value={highlight.color}
-                            onChange={(e) => updateWeekdayHighlight(day, { color: e.target.value })}
-                            className="w-12 h-10 rounded cursor-pointer"
+                          <button
+                            onClick={() => openColorPicker("weekday", day)}
+                            className="w-12 h-10 rounded-lg border-2 border-neutral-300 dark:border-neutral-600"
+                            style={{ backgroundColor: highlight.color }}
+                            aria-label="Select color"
                           />
                           <button
                             onClick={() => toggleExpanded(day)}
@@ -472,26 +489,29 @@ export default function Settings() {
                 onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
                 className={`px-4 py-2 rounded-lg border ${
                   theme === "dark"
-                    ? "bg-neutral-800 border-neutral-700 text-neutral-200"
-                    : "bg-white border-neutral-300 text-neutral-900"
+                    ? "bg-neutral-800 border-neutral-700 text-neutral-200 placeholder:text-neutral-500"
+                    : "bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400"
                 }`}
               />
               <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={newHoliday.color}
-                  onChange={(e) => setNewHoliday({ ...newHoliday, color: e.target.value })}
-                  className="w-12 h-10 rounded cursor-pointer"
+                <button
+                  onClick={() => openColorPicker("holiday")}
+                  className="w-12 h-10 rounded-lg border-2 border-neutral-300 dark:border-neutral-600 flex-shrink-0"
+                  style={{ backgroundColor: newHoliday.color }}
+                  aria-label="Select color"
                 />
                 <button
                   onClick={handleAddHoliday}
+                  disabled={!newHoliday.date || !newHoliday.name}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                    theme === "dark"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                    !newHoliday.date || !newHoliday.name
+                      ? "bg-neutral-400 text-neutral-200 cursor-not-allowed"
+                      : theme === "dark"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-blue-600 hover:bg-blue-700 text-white"
                   }`}
                 >
-                  <IoAdd className="text-xl" />
+                  <IoAdd className="text-lg" />
                   Add
                 </button>
               </div>
@@ -535,6 +555,23 @@ export default function Settings() {
           </div>
         </section>
       </div>
+
+      <ColorPicker
+        isOpen={colorPickerOpen}
+        onClose={() => {
+          setColorPickerOpen(false)
+          setColorPickerContext(null)
+        }}
+        currentColor={
+          colorPickerContext?.type === "holiday"
+            ? newHoliday.color
+            : colorPickerContext?.weekday !== undefined
+              ? settings.weekdayHighlights.find((w) => w.day === colorPickerContext.weekday)?.color || "#3b82f6"
+              : "#3b82f6"
+        }
+        onColorSelect={handleColorSelect}
+        title="Select Highlight Color"
+      />
     </div>
   )
 }

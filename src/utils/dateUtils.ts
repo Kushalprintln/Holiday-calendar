@@ -181,3 +181,66 @@ export function isWeekdayHighlighted(
 
   return highlightedDates.includes(dateStr)
 }
+
+export interface SuggestedLeaveParams {
+  holidays: Array<{ date: string }>
+  year: number
+  month: number
+  maxGap?: number
+}
+
+export function getSuggestedLeaveDates({ holidays, year, month, maxGap = 3 }: SuggestedLeaveParams): string[] {
+  const holidayDates = new Set(holidays.map((h) => h.date))
+  const suggestions: string[] = []
+  const daysInMonth = getDaysInMonth(year, month)
+
+  // Check each day in the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const currentDate = normalizeDate(year, month, day)
+
+    // Skip if already a holiday
+    if (holidayDates.has(currentDate)) continue
+
+    // Look for holidays before and after
+    let daysBefore = 0
+    let daysAfter = 0
+    let foundHolidayBefore = false
+    let foundHolidayAfter = false
+
+    // Check up to maxGap days before
+    for (let i = 1; i <= maxGap + 1; i++) {
+      const checkDay = day - i
+      if (checkDay < 1) break
+
+      const checkDate = normalizeDate(year, month, checkDay)
+      if (holidayDates.has(checkDate)) {
+        daysBefore = i - 1
+        foundHolidayBefore = true
+        break
+      }
+    }
+
+    // Check up to maxGap days after
+    for (let i = 1; i <= maxGap + 1; i++) {
+      const checkDay = day + i
+      if (checkDay > daysInMonth) break
+
+      const checkDate = normalizeDate(year, month, checkDay)
+      if (holidayDates.has(checkDate)) {
+        daysAfter = i - 1
+        foundHolidayAfter = true
+        break
+      }
+    }
+
+    // If enclosed between holidays and gap is within maxGap
+    if (foundHolidayBefore && foundHolidayAfter) {
+      const totalGap = daysBefore + daysAfter + 1
+      if (totalGap <= maxGap) {
+        suggestions.push(currentDate)
+      }
+    }
+  }
+
+  return suggestions
+}
