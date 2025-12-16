@@ -19,6 +19,9 @@ export interface Holiday {
 export interface WeekdayHighlight {
   day: number
   color: string
+  mode: "all" | "alternate"
+  highlightNext: boolean
+  markAsHoliday: boolean
 }
 
 export interface CalendarTemplate {

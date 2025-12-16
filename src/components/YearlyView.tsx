@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useCalendar } from "../context/CalendarContext"
-import { getMonthName, generateMonthGrid } from "../utils/dateUtils"
+import { getMonthName, generateMonthGrid, getWeekdayOccurrences } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 import HolidayTooltip from "./HolidayTooltip"
 import AddHolidayModal from "./AddHolidayModal"
@@ -29,6 +29,20 @@ export default function YearlyView() {
     })
 
     const weekdayNames = getWeekdayNames(settings.weekdayDisplay, settings.firstDayOfWeek)
+
+    const weeklyHolidayDates = new Set<string>()
+    settings.weekdayHighlights.forEach((highlight) => {
+      if (highlight.markAsHoliday) {
+        const dates = getWeekdayOccurrences({
+          year,
+          month: monthIndex,
+          weekday: highlight.day,
+          mode: highlight.mode,
+          highlightNext: highlight.highlightNext,
+        })
+        dates.forEach((date) => weeklyHolidayDates.add(date))
+      }
+    })
 
     return (
       <div
@@ -67,17 +81,35 @@ export default function YearlyView() {
             }
 
             const holiday = holidays.find((h) => h.date === day.date)
-            const weekdayHighlight = settings.weekdayHighlights.find((w) => w.day === day.dayOfWeek)
+            const isWeeklyHoliday = weeklyHolidayDates.has(day.date)
+
+            const weekdayHighlight = settings.weekdayHighlights.find((h) => {
+              if (h.day !== day.dayOfWeek) return false
+              const highlightedDates = getWeekdayOccurrences({
+                year: day.year,
+                month: day.month,
+                weekday: h.day,
+                mode: h.mode,
+                highlightNext: h.highlightNext,
+              })
+              return highlightedDates.includes(day.date)
+            })
 
             const isOverlapping = !day.isCurrentMonth
             const opacity = isOverlapping ? "opacity-40" : ""
+
+            const tooltipHoliday =
+              holiday ||
+              (isWeeklyHoliday
+                ? { id: "weekly", date: day.date, name: "Weekly Holiday", color: weekdayHighlight?.color || "#3b82f6" }
+                : null)
 
             const dateCell = (
               <div
                 key={idx}
                 onClick={() => handleDateClick(day.date)}
                 className={`aspect-square flex items-center justify-center text-xs rounded ${opacity} ${
-                  day && (day.holiday || day.weekdayHighlight)
+                  day && (holiday || weekdayHighlight)
                     ? `font-semibold`
                     : theme === "dark"
                       ? "text-neutral-300"
@@ -92,8 +124,8 @@ export default function YearlyView() {
               </div>
             )
 
-            return holiday ? (
-              <HolidayTooltip key={idx} holiday={holiday} theme={theme}>
+            return tooltipHoliday ? (
+              <HolidayTooltip key={idx} holiday={tooltipHoliday} theme={theme}>
                 {dateCell}
               </HolidayTooltip>
             ) : (

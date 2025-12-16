@@ -113,3 +113,71 @@ export function parseDateString(dateStr: string): { year: number; month: number;
   const [year, month, day] = dateStr.split("-").map(Number)
   return { year, month: month - 1, day } // month is 0-indexed
 }
+
+export interface WeekdayOccurrenceParams {
+  year: number
+  month: number
+  weekday: number // 0-6 (Sunday-Saturday)
+  mode: "all" | "alternate"
+  highlightNext: boolean
+}
+
+export function getWeekdayOccurrences({
+  year,
+  month,
+  weekday,
+  mode,
+  highlightNext,
+}: WeekdayOccurrenceParams): string[] {
+  const occurrences: string[] = []
+  const daysInMonth = getDaysInMonth(year, month)
+
+  // Find all occurrences of the weekday in the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day)
+    if (date.getDay() === weekday) {
+      occurrences.push(normalizeDate(year, month, day))
+    }
+  }
+
+  // Return based on mode
+  if (mode === "all") {
+    return occurrences
+  }
+
+  // MARK ALTERNATE mode
+  // Default: highlight 1st, 3rd, 5th (indices 0, 2, 4)
+  // With highlightNext: highlight 2nd, 4th (indices 1, 3)
+  return occurrences.filter((_, index) => {
+    if (highlightNext) {
+      return index % 2 === 1 // Odd indices (2nd, 4th occurrence)
+    } else {
+      return index % 2 === 0 // Even indices (1st, 3rd, 5th occurrence)
+    }
+  })
+}
+
+export function isWeekdayHighlighted(
+  dateStr: string,
+  weekdayHighlights: Array<{
+    day: number
+    mode: "all" | "alternate"
+    highlightNext: boolean
+  }>,
+): boolean {
+  const { year, month, day } = parseDateString(dateStr)
+  const dayOfWeek = new Date(year, month, day).getDay()
+
+  const highlight = weekdayHighlights.find((h) => h.day === dayOfWeek)
+  if (!highlight) return false
+
+  const highlightedDates = getWeekdayOccurrences({
+    year,
+    month,
+    weekday: dayOfWeek,
+    mode: highlight.mode,
+    highlightNext: highlight.highlightNext,
+  })
+
+  return highlightedDates.includes(dateStr)
+}

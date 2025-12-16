@@ -1,13 +1,14 @@
 "use client"
 
-import { useCalendar } from "../context/CalendarContext"
+import { useCalendar, type WeekdayHighlight } from "../context/CalendarContext"
 import { templates } from "../utils/templates"
-import { IoAdd, IoTrashOutline } from "react-icons/io5"
+import { IoAdd, IoTrashOutline, IoChevronDown, IoChevronUp } from "react-icons/io5"
 import { useState } from "react"
 
 export default function Settings() {
   const { theme, settings, updateSettings, holidays, addHoliday, removeHoliday } = useCalendar()
   const [newHoliday, setNewHoliday] = useState({ date: "", name: "", color: "#ef4444" })
+  const [expandedWeekdays, setExpandedWeekdays] = useState<Set<number>>(new Set())
 
   const handleAddHoliday = () => {
     if (newHoliday.date && newHoliday.name) {
@@ -19,22 +20,47 @@ export default function Settings() {
   const handleWeekdayToggle = (day: number) => {
     const existing = settings.weekdayHighlights.find((w) => w.day === day)
     if (existing) {
+      // Remove the highlight
       updateSettings({
         ...settings,
         weekdayHighlights: settings.weekdayHighlights.filter((w) => w.day !== day),
       })
+      // Collapse the panel
+      setExpandedWeekdays((prev) => {
+        const next = new Set(prev)
+        next.delete(day)
+        return next
+      })
     } else {
+      // Add new highlight with defaults
       updateSettings({
         ...settings,
-        weekdayHighlights: [...settings.weekdayHighlights, { day, color: "#3b82f6" }],
+        weekdayHighlights: [
+          ...settings.weekdayHighlights,
+          { day, color: "#3b82f6", mode: "all", highlightNext: false, markAsHoliday: false },
+        ],
       })
+      // Expand the panel
+      setExpandedWeekdays((prev) => new Set(prev).add(day))
     }
   }
 
-  const handleWeekdayColorChange = (day: number, color: string) => {
+  const updateWeekdayHighlight = (day: number, updates: Partial<WeekdayHighlight>) => {
     updateSettings({
       ...settings,
-      weekdayHighlights: settings.weekdayHighlights.map((w) => (w.day === day ? { ...w, color } : w)),
+      weekdayHighlights: settings.weekdayHighlights.map((w) => (w.day === day ? { ...w, ...updates } : w)),
+    })
+  }
+
+  const toggleExpanded = (day: number) => {
+    setExpandedWeekdays((prev) => {
+      const next = new Set(prev)
+      if (next.has(day)) {
+        next.delete(day)
+      } else {
+        next.add(day)
+      }
+      return next
     })
   }
 
@@ -165,31 +191,189 @@ export default function Settings() {
           <div className="space-y-3">
             {weekdays.map(({ day, name }) => {
               const highlight = settings.weekdayHighlights.find((w) => w.day === day)
+              const isExpanded = expandedWeekdays.has(day)
+
               return (
-                <div
-                  key={day}
-                  className={`flex items-center justify-between p-4 rounded-lg ${
-                    theme === "dark" ? "bg-neutral-900" : "bg-white border border-neutral-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="checkbox"
-                      checked={!!highlight}
-                      onChange={() => handleWeekdayToggle(day)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`font-medium ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}>
-                      {name}
-                    </span>
+                <div key={day} className="space-y-2">
+                  {/* Main weekday row */}
+                  <div
+                    className={`flex items-center justify-between p-4 rounded-lg ${
+                      theme === "dark" ? "bg-neutral-900" : "bg-white border border-neutral-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="checkbox"
+                        checked={!!highlight}
+                        onChange={() => handleWeekdayToggle(day)}
+                        className="w-5 h-5 rounded"
+                      />
+                      <span className={`font-medium ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}>
+                        {name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {highlight && (
+                        <>
+                          <input
+                            type="color"
+                            value={highlight.color}
+                            onChange={(e) => updateWeekdayHighlight(day, { color: e.target.value })}
+                            className="w-12 h-10 rounded cursor-pointer"
+                          />
+                          <button
+                            onClick={() => toggleExpanded(day)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              theme === "dark"
+                                ? "hover:bg-neutral-800 text-neutral-400"
+                                : "hover:bg-neutral-100 text-neutral-600"
+                            }`}
+                          >
+                            {isExpanded ? <IoChevronUp className="text-xl" /> : <IoChevronDown className="text-xl" />}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  {highlight && (
-                    <input
-                      type="color"
-                      value={highlight.color}
-                      onChange={(e) => handleWeekdayColorChange(day, e.target.value)}
-                      className="w-12 h-10 rounded cursor-pointer"
-                    />
+
+                  {/* Expanded configuration panel */}
+                  {highlight && isExpanded && (
+                    <div
+                      className={`p-6 rounded-lg space-y-5 ${
+                        theme === "dark" ? "bg-neutral-800/50" : "bg-neutral-50 border border-neutral-200"
+                      }`}
+                    >
+                      {/* Highlight Mode Radio Group */}
+                      <div>
+                        <label
+                          className={`block text-sm font-semibold mb-3 ${
+                            theme === "dark" ? "text-neutral-200" : "text-neutral-700"
+                          }`}
+                        >
+                          Highlight Mode
+                        </label>
+                        <div className="flex gap-4">
+                          <label
+                            className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border ${
+                              highlight.mode === "all"
+                                ? theme === "dark"
+                                  ? "border-blue-500 bg-blue-950/30"
+                                  : "border-blue-600 bg-blue-50"
+                                : theme === "dark"
+                                  ? "border-neutral-700"
+                                  : "border-neutral-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`mode-${day}`}
+                              checked={highlight.mode === "all"}
+                              onChange={() => updateWeekdayHighlight(day, { mode: "all" })}
+                              className="w-4 h-4"
+                            />
+                            <span
+                              className={`font-medium ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}
+                            >
+                              Mark All
+                            </span>
+                          </label>
+                          <label
+                            className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border ${
+                              highlight.mode === "alternate"
+                                ? theme === "dark"
+                                  ? "border-blue-500 bg-blue-950/30"
+                                  : "border-blue-600 bg-blue-50"
+                                : theme === "dark"
+                                  ? "border-neutral-700"
+                                  : "border-neutral-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`mode-${day}`}
+                              checked={highlight.mode === "alternate"}
+                              onChange={() => updateWeekdayHighlight(day, { mode: "alternate" })}
+                              className="w-4 h-4"
+                            />
+                            <span
+                              className={`font-medium ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}
+                            >
+                              Mark Alternate
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Highlight Next Toggle - Only shown when mode is alternate */}
+                      {highlight.mode === "alternate" && (
+                        <div
+                          className={`flex items-center justify-between p-4 rounded-lg ${
+                            theme === "dark" ? "bg-neutral-900/50" : "bg-white border border-neutral-200"
+                          }`}
+                        >
+                          <div>
+                            <h3
+                              className={`font-medium mb-1 ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}
+                            >
+                              Highlight Next
+                            </h3>
+                            <p className={`text-sm ${theme === "dark" ? "text-neutral-400" : "text-neutral-600"}`}>
+                              Shift to alternate occurrences (e.g., 2nd, 4th instead of 1st, 3rd)
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => updateWeekdayHighlight(day, { highlightNext: !highlight.highlightNext })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              highlight.highlightNext
+                                ? "bg-blue-600"
+                                : theme === "dark"
+                                  ? "bg-neutral-700"
+                                  : "bg-neutral-300"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                highlight.highlightNext ? "translate-x-6" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Mark as Holiday Toggle */}
+                      <div
+                        className={`flex items-center justify-between p-4 rounded-lg ${
+                          theme === "dark" ? "bg-neutral-900/50" : "bg-white border border-neutral-200"
+                        }`}
+                      >
+                        <div>
+                          <h3
+                            className={`font-medium mb-1 ${theme === "dark" ? "text-neutral-200" : "text-neutral-800"}`}
+                          >
+                            Mark as Holiday
+                          </h3>
+                          <p className={`text-sm ${theme === "dark" ? "text-neutral-400" : "text-neutral-600"}`}>
+                            Treat highlighted days as weekly holidays
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => updateWeekdayHighlight(day, { markAsHoliday: !highlight.markAsHoliday })}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            highlight.markAsHoliday
+                              ? "bg-blue-600"
+                              : theme === "dark"
+                                ? "bg-neutral-700"
+                                : "bg-neutral-300"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              highlight.markAsHoliday ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )
