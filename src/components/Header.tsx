@@ -9,6 +9,7 @@ import {
   IoExpand,
   IoChevronDown,
 } from "react-icons/io5"
+import Logo from "./Logo"
 
 export default function Header() {
   const { theme, toggleTheme, year, setYear, layoutView, setLayoutView, setViewMode } = useCalendar()
@@ -21,12 +22,7 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
-          {/* Logo */}
-          <div className="flex items-center flex-shrink-0">
-            <h1 className={`text-lg sm:text-xl font-semibold ${theme === "dark" ? "text-white" : "text-neutral-900"}`}>
-              CustomCalendar
-            </h1>
-          </div>
+          <Logo theme={theme} className="flex-shrink-0" />
 
           {/* Center Controls */}
           <div className="flex items-center gap-3 sm:gap-6">

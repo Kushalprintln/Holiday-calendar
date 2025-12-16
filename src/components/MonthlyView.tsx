@@ -143,7 +143,7 @@ export default function MonthlyView() {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 flex-1 auto-rows-fr">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 flex-1">
             {days.map((day, idx) => {
               if (!day) {
                 return <div key={idx} />
@@ -183,7 +183,7 @@ export default function MonthlyView() {
                 <div
                   key={idx}
                   onClick={() => handleDateClick(day.date)}
-                  className={`flex flex-col items-center justify-center rounded-lg transition-all ${
+                  className={`h-full flex flex-col items-center justify-center rounded-lg transition-all ${
                     theme === "dark" ? "bg-neutral-800/50 hover:bg-neutral-700/50" : "bg-white/50 hover:bg-white/70"
                   } backdrop-blur-sm ${opacity} ${settings.template.dayClass} ${
                     activeTab === "calendar" && !isOverlapping ? "cursor-pointer" : ""
