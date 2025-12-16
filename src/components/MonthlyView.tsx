@@ -5,11 +5,14 @@ import { useCalendar } from "../context/CalendarContext"
 import { getMonthName, generateMonthGrid } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 import { IoChevronBack, IoChevronForward } from "react-icons/io5"
+import HolidayTooltip from "./HolidayTooltip"
+import AddHolidayModal from "./AddHolidayModal"
 
 export default function MonthlyView() {
-  const { year, setYear, theme, settings, holidays } = useCalendar()
+  const { year, setYear, theme, settings, holidays, activeTab } = useCalendar()
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const navigateMonth = (direction: "prev" | "next") => {
     setSlideDirection(direction === "prev" ? "right" : "left")
@@ -48,10 +51,16 @@ export default function MonthlyView() {
 
   const backgroundImage = `/placeholder.svg?height=1080&width=1920&query=beautiful ${monthName} landscape scenery`
 
+  const handleDateClick = (date: string) => {
+    if (activeTab === "calendar") {
+      setSelectedDate(date)
+    }
+  }
+
   return (
-    <div className="relative">
+    <div className="relative h-full flex flex-col">
       {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <button
           onClick={() => navigateMonth("prev")}
           className={`p-2 rounded-lg transition-colors ${
@@ -79,9 +88,8 @@ export default function MonthlyView() {
         </button>
       </div>
 
-      {/* Calendar with Background */}
       <div
-        className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${
+        className={`relative rounded-2xl overflow-hidden flex-1 flex flex-col transition-all duration-300 ${
           slideDirection === "left"
             ? "translate-x-full opacity-0"
             : slideDirection === "right"
@@ -99,10 +107,9 @@ export default function MonthlyView() {
           <div className={`absolute inset-0 ${theme === "dark" ? "bg-neutral-950/80" : "bg-white/90"}`} />
         </div>
 
-        {/* Calendar Content */}
-        <div className="relative z-10 p-8">
+        <div className="relative z-10 p-6 flex flex-col h-full">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
+          <div className="grid grid-cols-7 gap-2 mb-2 flex-shrink-0">
             {weekdayNames.map((name, idx) => (
               <div
                 key={idx}
@@ -115,11 +122,10 @@ export default function MonthlyView() {
             ))}
           </div>
 
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-2 flex-1 auto-rows-fr">
             {days.map((day, idx) => {
               if (!day) {
-                return <div key={idx} className="aspect-square" />
+                return <div key={idx} />
               }
 
               const holiday = holidays.find((h) => h.date === day.date)
@@ -128,19 +134,22 @@ export default function MonthlyView() {
               const isOverlapping = !day.isCurrentMonth
               const opacity = isOverlapping ? "opacity-40" : ""
 
-              return (
+              const dateCell = (
                 <div
                   key={idx}
-                  className={`aspect-square flex flex-col items-center justify-center rounded-lg transition-all ${
+                  onClick={() => handleDateClick(day.date)}
+                  className={`flex flex-col items-center justify-center rounded-lg transition-all ${
                     theme === "dark" ? "bg-neutral-800/50 hover:bg-neutral-700/50" : "bg-white/50 hover:bg-white/70"
-                  } backdrop-blur-sm ${opacity} ${settings.template.dayClass}`}
+                  } backdrop-blur-sm ${opacity} ${settings.template.dayClass} ${
+                    activeTab === "calendar" && !isOverlapping ? "cursor-pointer" : ""
+                  }`}
                   style={{
                     backgroundColor: holiday ? holiday.color : weekdayHighlight ? weekdayHighlight.color : undefined,
                     backdropFilter: holiday || weekdayHighlight ? "none" : undefined,
                   }}
                 >
                   <span
-                    className={`text-2xl font-semibold ${
+                    className={`text-xl font-semibold ${
                       holiday || weekdayHighlight
                         ? "text-white"
                         : theme === "dark"
@@ -155,10 +164,22 @@ export default function MonthlyView() {
                   )}
                 </div>
               )
+
+              return holiday ? (
+                <HolidayTooltip key={idx} holiday={holiday} theme={theme}>
+                  {dateCell}
+                </HolidayTooltip>
+              ) : (
+                dateCell
+              )
             })}
           </div>
         </div>
       </div>
+
+      {selectedDate && (
+        <AddHolidayModal date={selectedDate} isOpen={!!selectedDate} onClose={() => setSelectedDate(null)} />
+      )}
     </div>
   )
 }

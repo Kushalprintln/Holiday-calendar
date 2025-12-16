@@ -1,10 +1,22 @@
+"use client"
+
+import { useState } from "react"
 import { useCalendar } from "../context/CalendarContext"
 import { getMonthName, generateMonthGrid } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
+import HolidayTooltip from "./HolidayTooltip"
+import AddHolidayModal from "./AddHolidayModal"
 
 export default function YearlyView() {
-  const { year, theme, settings, holidays } = useCalendar()
+  const { year, theme, settings, holidays, activeTab } = useCalendar()
   const months = Array.from({ length: 12 }, (_, i) => i)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  const handleDateClick = (date: string) => {
+    if (activeTab === "calendar") {
+      setSelectedDate(date)
+    }
+  }
 
   const renderMiniMonth = (monthIndex: number) => {
     const monthName = getMonthName(monthIndex, settings.monthDisplay)
@@ -47,7 +59,7 @@ export default function YearlyView() {
           ))}
         </div>
 
-        {/* Days grid - Now renders all 42 cells with proper overlapping dates */}
+        {/* Days grid */}
         <div className="grid grid-cols-7 gap-1">
           {days.map((day, idx) => {
             if (!day) {
@@ -60,16 +72,17 @@ export default function YearlyView() {
             const isOverlapping = !day.isCurrentMonth
             const opacity = isOverlapping ? "opacity-40" : ""
 
-            return (
+            const dateCell = (
               <div
                 key={idx}
+                onClick={() => handleDateClick(day.date)}
                 className={`aspect-square flex items-center justify-center text-xs rounded ${opacity} ${
                   day && (day.holiday || day.weekdayHighlight)
                     ? `font-semibold`
                     : theme === "dark"
                       ? "text-neutral-300"
                       : "text-neutral-700"
-                } ${settings.template.dayClass}`}
+                } ${settings.template.dayClass} ${activeTab === "calendar" && !isOverlapping ? "cursor-pointer hover:ring-2 hover:ring-blue-500" : ""}`}
                 style={{
                   backgroundColor: holiday ? holiday.color : weekdayHighlight ? weekdayHighlight.color : undefined,
                   color: holiday || weekdayHighlight ? "#fff" : undefined,
@@ -78,6 +91,14 @@ export default function YearlyView() {
                 {day.day}
               </div>
             )
+
+            return holiday ? (
+              <HolidayTooltip key={idx} holiday={holiday} theme={theme}>
+                {dateCell}
+              </HolidayTooltip>
+            ) : (
+              dateCell
+            )
           })}
         </div>
       </div>
@@ -85,10 +106,16 @@ export default function YearlyView() {
   }
 
   return (
-    <div className={`transition-opacity duration-500 ${settings.template.containerClass}`}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {months.map(renderMiniMonth)}
+    <>
+      <div className={`transition-opacity duration-500`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {months.map(renderMiniMonth)}
+        </div>
       </div>
-    </div>
+
+      {selectedDate && (
+        <AddHolidayModal date={selectedDate} isOpen={!!selectedDate} onClose={() => setSelectedDate(null)} />
+      )}
+    </>
   )
 }

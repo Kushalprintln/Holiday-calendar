@@ -45,7 +45,7 @@ export const templates: CalendarTemplate[] = [
     id: "professional",
     name: "Professional",
     description: "Business-focused with clear hierarchy",
-    containerClass: "border-2",
+    containerClass: "",
     titleClass: "text-base font-semibold uppercase tracking-wider",
     dayClass: "font-medium",
   },

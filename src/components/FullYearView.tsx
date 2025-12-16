@@ -5,6 +5,7 @@ import { getMonthName, generateMonthGrid } from "../utils/dateUtils"
 import { getWeekdayNames } from "../utils/calendarUtils"
 import { IoClose } from "react-icons/io5"
 import { useEffect } from "react"
+import HolidayTooltip from "./HolidayTooltip"
 
 export default function FullYearView() {
   const { year, theme, settings, holidays, setViewMode } = useCalendar()
@@ -102,7 +103,7 @@ export default function FullYearView() {
                     const isOverlapping = !day.isCurrentMonth
                     const opacity = isOverlapping ? "opacity-40" : ""
 
-                    return (
+                    const dateCell = (
                       <div
                         key={idx}
                         className={`aspect-square flex items-center justify-center text-xs rounded font-medium ${opacity} ${settings.template.dayClass}`}
@@ -119,6 +120,14 @@ export default function FullYearView() {
                       >
                         {day.day}
                       </div>
+                    )
+
+                    return holiday ? (
+                      <HolidayTooltip key={idx} holiday={holiday} theme={theme}>
+                        {dateCell}
+                      </HolidayTooltip>
+                    ) : (
+                      dateCell
                     )
                   })}
                 </div>

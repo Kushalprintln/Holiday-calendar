@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { templates } from "../utils/templates"
+import { initDB, saveData, getData, getAllData, deleteData, STORE_NAMES } from "../utils/db"
 
 export type Theme = "light" | "dark"
 export type LayoutView = "yearly" | "monthly"
@@ -86,6 +87,71 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   })
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [savedCalendars, setSavedCalendars] = useState<SavedCalendar[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  useEffect(() => {
+    async function hydrateFromDB() {
+      try {
+        await initDB()
+
+        const savedSettings = await getData<CalendarSettings & { id: string }>(STORE_NAMES.SETTINGS, "current")
+        if (savedSettings) {
+          setSettings(savedSettings)
+        }
+
+        const savedHolidays = await getAllData<Holiday>(STORE_NAMES.HOLIDAYS)
+        if (savedHolidays.length > 0) {
+          setHolidays(savedHolidays)
+        }
+
+        const calendars = await getAllData<SavedCalendar>(STORE_NAMES.SAVED_CALENDARS)
+        if (calendars.length > 0) {
+          setSavedCalendars(calendars)
+        }
+
+        setIsHydrated(true)
+      } catch (error) {
+        console.error("Failed to hydrate from IndexedDB:", error)
+        setIsHydrated(true)
+      }
+    }
+
+    hydrateFromDB()
+  }, [])
+
+  useEffect(() => {
+    if (isHydrated) {
+      saveData(STORE_NAMES.SETTINGS, { ...settings, id: "current" }).catch(console.error)
+    }
+  }, [settings, isHydrated])
+
+  useEffect(() => {
+    if (isHydrated) {
+      ;(async () => {
+        try {
+          const existingHolidays = await getAllData<Holiday>(STORE_NAMES.HOLIDAYS)
+          await Promise.all(existingHolidays.map((h) => deleteData(STORE_NAMES.HOLIDAYS, h.id)))
+          await Promise.all(holidays.map((h) => saveData(STORE_NAMES.HOLIDAYS, h)))
+        } catch (error) {
+          console.error("Failed to persist holidays:", error)
+        }
+      })()
+    }
+  }, [holidays, isHydrated])
+
+  useEffect(() => {
+    if (isHydrated) {
+      ;(async () => {
+        try {
+          const existingCalendars = await getAllData<SavedCalendar>(STORE_NAMES.SAVED_CALENDARS)
+          await Promise.all(existingCalendars.map((c) => deleteData(STORE_NAMES.SAVED_CALENDARS, c.id)))
+          await Promise.all(savedCalendars.map((c) => saveData(STORE_NAMES.SAVED_CALENDARS, c)))
+        } catch (error) {
+          console.error("Failed to persist saved calendars:", error)
+        }
+      })()
+    }
+  }, [savedCalendars, isHydrated])
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light")
@@ -96,6 +162,11 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   }
 
   const addHoliday = (holiday: Omit<Holiday, "id">) => {
+    const duplicate = holidays.find((h) => h.date === holiday.date)
+    if (duplicate) {
+      console.warn("Holiday already exists for this date")
+      return
+    }
     setHolidays([...holidays, { ...holiday, id: Date.now().toString() }])
   }
 
